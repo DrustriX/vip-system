@@ -1,1 +1,97 @@
+<!DOCTYPE html>
+<html lang="th">
 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central Cafe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- 🔐 LOGIN MODAL -->
+<div id="loginModal" class="modal">
+
+    <div class="modal-box">
+
+        <h2>Admin Login</h2>
+
+        <input type="password" id="adminPass" placeholder="ใส่รหัส">
+
+        <button id="loginBtn">เข้าสู่ระบบ</button>
+        <button id="closeBtn">ปิด</button>
+
+        <hr style="margin:15px 0; opacity:0.2;">
+
+        <h3 style="color:#D4AF37;">➕ เพิ่ม VIP</h3>
+
+        <input type="text" id="vipName" placeholder="ชื่อผู้เล่น">
+        <input type="number" id="vipDays" placeholder="จำนวนวัน">
+        <input type="text" id="vipNote" placeholder="หมายเหตุ">
+
+        <button id="addVipBtn">เพิ่ม VIP</button>
+
+    </div>
+
+</div>
+
+<!-- MAIN -->
+<div class="container">
+
+    <header>
+
+        <div>
+            <h1>CENTRAL CAFE</h1>
+            <p class="subtitle">Premium Member System</p>
+        </div>
+
+        <button class="admin-btn">
+            Admin Access
+        </button>
+
+    </header>
+
+    <div class="hero">
+
+        <h2>👑 ระบบจัดการสมาชิก VIP</h2>
+
+        <p>ระบบสำหรับจัดการสมาชิก VIP ของ Central Cafe</p>
+
+        <br><br>
+
+        <!-- STATS -->
+        <div class="stats">
+
+            <div class="card">
+                <h3 id="vip-count">0</h3>
+                <p>สมาชิก VIP</p>
+            </div>
+
+            <div class="card">
+                <h3 id="expired-count">0</h3>
+                <p>หมดอายุ</p>
+            </div>
+
+            <div class="card">
+                <h3 id="history-count">0</h3>
+                <p>ประวัติ</p>
+            </div>
+
+        </div>
+
+        <br><br>
+
+        <!-- VIP LIST -->
+        <h2>👑 รายชื่อสมาชิก VIP</h2>
+
+        <div id="vip-list"></div>
+
+    </div>
+
+</div>
+
+<script type="module" src="script.js"></script>
+
+</body>
+</html>
