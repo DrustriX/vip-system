@@ -345,6 +345,32 @@ onValue(ref(db, "vips"), async (snap) => {
     renderVips();
 });
 
-onValue(ref(db, "history"), (snap) => {
-    renderHistory(snap.val());
+onValue(ref(db, "history"), async (snap) => {
+    const data = snap.val();
+    if (!data) { renderHistory(null); return; }
+
+    const now = Date.now();
+    const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+
+    // ลบ entry ที่เก่ากว่า 30 วัน
+    const cleaned = { ...data };
+    for (const [key, h] of Object.entries(data)) {
+        if (h.removedAt && (now - h.removedAt) > THIRTY_DAYS) {
+            await remove(ref(db, `history/${key}`));
+            delete cleaned[key];
+        }
+    }
+
+    // ถ้ายังเหลือมากกว่า 30 รายการ ลบรายการเก่าสุดออก
+    const remaining = Object.entries(cleaned)
+        .sort((a, b) => (a[1].removedAt || 0) - (b[1].removedAt || 0));
+    if (remaining.length > 30) {
+        const toDelete = remaining.slice(0, remaining.length - 30);
+        for (const [key] of toDelete) {
+            await remove(ref(db, `history/${key}`));
+            delete cleaned[key];
+        }
+    }
+
+    renderHistory(cleaned);
 });
