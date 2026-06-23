@@ -19,20 +19,26 @@ const vipCount = document.getElementById("vip-count");
 
 console.log("SCRIPT LOADED");
 
-// 🔥 TEST กันหน้าขาว
-vipList.innerHTML = "<h3 style='color:white'>กำลังโหลดข้อมูล...</h3>";
+// 🔥 กันหน้าขาว + loading state
+vipList.innerHTML = `
+    <div style="color:#D4AF37; text-align:center; padding:20px;">
+        ⏳ กำลังโหลด VIP...
+    </div>
+`;
 
 onValue(ref(db, "vips"), (snapshot) => {
 
     const data = snapshot.val();
 
-    console.log("FIREBASE DATA:", data);
-
     vipList.innerHTML = "";
 
-    // ❌ ถ้าไม่มีข้อมูล
+    // ❌ ไม่มีข้อมูล
     if (!data) {
-        vipList.innerHTML = "<h3 style='color:white'>ยังไม่มี VIP</h3>";
+        vipList.innerHTML = `
+            <div style="color:#999; text-align:center; padding:20px;">
+                ไม่มี VIP ตอนนี้
+            </div>
+        `;
         vipCount.textContent = "0";
         return;
     }
@@ -41,7 +47,6 @@ onValue(ref(db, "vips"), (snapshot) => {
     vipCount.textContent = keys.length;
 
     keys.forEach((key) => {
-
         const vip = data[key];
 
         const div = document.createElement("div");
