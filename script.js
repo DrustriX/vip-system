@@ -19,15 +19,21 @@ const vipCount = document.getElementById("vip-count");
 
 console.log("SCRIPT LOADED");
 
+// 🔥 TEST กันหน้าขาว
+vipList.innerHTML = "<h3 style='color:white'>กำลังโหลดข้อมูล...</h3>";
+
 onValue(ref(db, "vips"), (snapshot) => {
 
     const data = snapshot.val();
 
+    console.log("FIREBASE DATA:", data);
+
     vipList.innerHTML = "";
 
+    // ❌ ถ้าไม่มีข้อมูล
     if (!data) {
-        vipList.innerHTML = "<p>ยังไม่มี VIP</p>";
-        vipCount.textContent = 0;
+        vipList.innerHTML = "<h3 style='color:white'>ยังไม่มี VIP</h3>";
+        vipCount.textContent = "0";
         return;
     }
 
@@ -35,6 +41,7 @@ onValue(ref(db, "vips"), (snapshot) => {
     vipCount.textContent = keys.length;
 
     keys.forEach((key) => {
+
         const vip = data[key];
 
         const div = document.createElement("div");
@@ -42,11 +49,12 @@ onValue(ref(db, "vips"), (snapshot) => {
 
         div.innerHTML = `
             <h3>${vip.name || key}</h3>
-            <p>👑 VIP</p>
-            <p>📅 วัน: ${vip.days || 0}</p>
-            <p>📝 ${vip.note || "-"}</p>
+            <p>👑 สถานะ: VIP</p>
+            <p>📅 วัน VIP: ${vip.days || 0}</p>
+            <p>📝 หมายเหตุ: ${vip.note || "-"}</p>
         `;
 
         vipList.appendChild(div);
     });
+
 });
