@@ -18,27 +18,32 @@ const vipList = document.getElementById("vip-list");
 const vipCount = document.getElementById("vip-count");
 
 onValue(ref(db, "vips"), (snapshot) => {
-const data = snapshot.val() || {};
 
 ```
+const data = snapshot.val() || {};
+
 vipList.innerHTML = "";
 
 const count = Object.keys(data).length;
 vipCount.textContent = count;
 
 Object.keys(data).forEach((key) => {
+
     const vip = data[key];
 
     const div = document.createElement("div");
-    div.className = "card";
+
+    div.className = "vip-card";
 
     div.innerHTML = `
         <h3>${vip.name || key}</h3>
-        <p>วัน VIP: ${vip.days || 0}</p>
-        <p>หมายเหตุ: ${vip.note || "-"}</p>
+        <p>👑 สถานะ : VIP</p>
+        <p>📅 วัน VIP : ${vip.days || 0}</p>
+        <p>📝 หมายเหตุ : ${vip.note || "-"}</p>
     `;
 
     vipList.appendChild(div);
+
 });
 ```
 
