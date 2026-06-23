@@ -1,292 +1,177 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import {
+    getDatabase, ref, onValue, push, set, update, remove, get
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-body {
-    background: #0a0a0a;
-    color: #fff;
-    font-family: 'Segoe UI', sans-serif;
-    min-height: 100vh;
-}
+// ====== CONFIG ======
+const ADMIN_PASSWORD = "1234"; // เปลี่ยนรหัสตรงนี้
 
-.container {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 20px;
-}
+const firebaseConfig = {
+    apiKey: "AIzaSyAg5S0_3O1EicYWqY8jVulF_bF_0kspmDg",
+    authDomain: "vip-system-d8317.firebaseapp.com",
+    databaseURL: "https://vip-system-d8317-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "vip-system-d8317",
+    storageBucket: "vip-system-d8317.firebasestorage.app",
+    messagingSenderId: "584414132253",
+    appId: "1:584414132253:web:5a4ca54246fb66d0ed6ef4"
+};
 
-/* HEADER */
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 0;
-    border-bottom: 1px solid #2a2a2a;
-    margin-bottom: 24px;
-}
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
 
-header h1 {
-    font-size: 1.9rem;
-    color: #D4AF37;
-    letter-spacing: 3px;
-}
+// ====== STATE ======
+let isAdmin = false;
+let vipsData = {};
+let countdownInterval = null;
 
-.subtitle { color: #666; font-size: 0.8rem; margin-top: 2px; }
+// ====== ELEMENTS ======
+const modal       = document.getElementById("loginModal");
+const adminPassEl = document.getElementById("adminPass");
+const msgEl       = document.getElementById("msg");
+const vipListEl   = document.getElementById("vip-list");
+const histListEl  = document.getElementById("history-list");
+const vipCountEl  = document.getElementById("vip-count");
+const expCountEl  = document.getElementById("expired-count");
+const histCountEl = document.getElementById("history-count");
 
-.admin-btn {
-    background: transparent;
-    border: 1px solid #D4AF37;
-    color: #D4AF37;
-    padding: 8px 18px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    transition: all 0.2s;
-}
-.admin-btn:hover { background: #D4AF37; color: #000; }
+// ====== POPUP: เพิ่มวัน ======
+const addDaysPopup = document.createElement("div");
+addDaysPopup.className = "add-days-popup";
+addDaysPopup.innerHTML = `
+<div class="popup-box">
+    <h3>➕ เพิ่มวัน VIP</h3>
+    <p id="popup-name" style="color:#aaa;font-size:0.85rem;"></p>
+    <input type="number" id="popup-days" placeholder="จำนวนวันที่ต้องการเพิ่ม" min="1">
+    <button class="popup-confirm" id="popup-confirm">ยืนยัน</button>
+    <button class="popup-cancel" id="popup-cancel">ยกเลิก</button>
+</div>`;
+document.body.appendChild(addDaysPopup);
 
-/* TABS */
-.tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 24px;
-    border-bottom: 1px solid #222;
-    padding-bottom: 12px;
-}
+let currentPopupKey = null;
 
-.tab {
-    background: transparent;
-    border: 1px solid #333;
-    color: #888;
-    padding: 8px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
-.tab.active {
-    background: #D4AF37;
-    color: #000;
-    border-color: #D4AF37;
-    font-weight: bold;
-}
+document.getElementById("popup-cancel").addEventListener("click", () => {
+    addDaysPopup.classList.remove("active");
+    document.getElementById("popup-days").value = "";
+    currentPopupKey = null;
+});
 
-.hidden { display: none; }
+document.getElementById("popup-confirm").addEventListener("click", async () => {
+    const days = parseInt(document.getElementById("popup-days").value);
+    if (!days || days < 1) return alert("ใส่จำนวนวันให้ถูกต้อง");
 
-/* STATS */
-.stats {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 28px;
-}
+    const snap = await get(ref(db, `vips/${currentPopupKey}`));
+    if (!snap.exists()) return;
 
-.card {
-    background: #141414;
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
-    padding: 18px 36px;
-    min-width: 130px;
-    text-align: center;
-}
-.card h3 { font-size: 2rem; color: #D4AF37; }
-.card p { color: #666; font-size: 0.8rem; margin-top: 4px; }
+    const vip = snap.val();
+    const newExpiry = (vip.expiryTimestamp || Date.now()) + days * 86400000;
+    const addedMs = days * 86400000;
 
-/* VIP GRID */
-.vip-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 16px;
-}
+    await update(ref(db, `vips/${currentPopupKey}`), {
+        expiryTimestamp: newExpiry,
+        days: Math.ceil((newExpiry - Date.now()) / 86400000)
+    });
 
-/* VIP CARD */
-.vip-card {
-    background: #141414;
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
-    padding: 18px;
-    position: relative;
-    transition: border-color 0.2s;
-}
-.vip-card.active-vip { border-color: #2d6a2d; }
-.vip-card.expired-vip { border-color: #6a2d2d; }
+    // บันทึกประวัติการเพิ่มวัน
+    await push(ref(db, `history_actions/${currentPopupKey}`), {
+        action: "add_days",
+        addedDays: days,
+        timestamp: Date.now()
+    });
 
-.vip-card h3 {
-    color: #fff;
-    font-size: 1rem;
-    margin-bottom: 10px;
-    padding-right: 24px;
-}
+    addDaysPopup.classList.remove("active");
+    document.getElementById("popup-days").value = "";
+    currentPopupKey = null;
+});
 
-.status-badge {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: bold;
-    padding: 3px 10px;
-    border-radius: 20px;
-    margin-bottom: 10px;
-    letter-spacing: 0.5px;
-}
-.badge-active { background: #1a3d1a; color: #4caf50; border: 1px solid #2d6a2d; }
-.badge-expired { background: #3d1a1a; color: #f44336; border: 1px solid #6a2d2d; }
+// ====== TABS ======
+document.querySelectorAll(".tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach(t => t.classList.add("hidden"));
+        btn.classList.add("active");
+        document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
+    });
+});
 
-.vip-card p {
-    color: #888;
-    font-size: 0.82rem;
-    margin: 4px 0;
-}
+// ====== MODAL ======
+document.querySelector(".admin-btn").addEventListener("click", () => {
+    modal.classList.add("active");
+});
+document.getElementById("closeBtn").addEventListener("click", () => {
+    modal.classList.remove("active");
+    msgEl.textContent = "";
+});
 
-.countdown {
-    font-size: 0.9rem;
-    font-weight: bold;
-    margin-top: 10px;
-    padding: 8px 10px;
-    background: #1a1a1a;
-    border-radius: 6px;
-    text-align: center;
-    letter-spacing: 0.3px;
-}
-.countdown.green { color: #4caf50; }
-.countdown.red { color: #f44336; }
+// ====== LOGIN ======
+document.getElementById("loginBtn").addEventListener("click", () => {
+    if (adminPassEl.value === ADMIN_PASSWORD) {
+        isAdmin = true;
+        msgEl.style.color = "#4caf50";
+        msgEl.textContent = "✅ เข้าสู่ระบบแล้ว";
+        renderVips();
+    } else {
+        msgEl.style.color = "#f44336";
+        msgEl.textContent = "❌ รหัสผิด";
+    }
+});
 
-/* ACTION BUTTONS */
-.card-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-}
+// ====== เพิ่ม VIP ใหม่ ======
+document.getElementById("addVipBtn").addEventListener("click", async () => {
+    if (!isAdmin) { msgEl.style.color = "#f44336"; msgEl.textContent = "❌ ต้องล็อกอินก่อน"; return; }
 
-.btn-add-days {
-    flex: 1;
-    background: #1a3a1a;
-    color: #4caf50;
-    border: 1px solid #2d6a2d;
-    border-radius: 6px;
-    padding: 7px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.btn-add-days:hover { background: #2d6a2d; color: #fff; }
+    const name = document.getElementById("vipName").value.trim();
+    const days = parseInt(document.getElementById("vipDays").value) || 0;
+    const note = document.getElementById("vipNote").value.trim();
 
-.btn-delete {
-    background: #3a1a1a;
-    color: #f44336;
-    border: 1px solid #6a2d2d;
-    border-radius: 6px;
-    padding: 7px 12px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.btn-delete:hover { background: #6a2d2d; color: #fff; }
+    if (!name) { msgEl.style.color = "#f44336"; msgEl.textContent = "❌ ใส่ชื่อก่อน"; return; }
+    if (days < 1) { msgEl.style.color = "#f44336"; msgEl.textContent = "❌ จำนวนวันต้องมากกว่า 0"; return; }
 
-/* MODAL */
-.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    z-index: 999;
-    justify-content: center;
-    align-items: center;
-}
-.modal.active { display: flex; }
+    const expiryTimestamp = Date.now() + days * 86400000;
+    const newRef = push(ref(db, "vips"));
 
-.modal-box {
-    background: #141414;
-    border: 1px solid #D4AF37;
-    border-radius: 14px;
-    padding: 28px;
-    width: 340px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-height: 90vh;
-    overflow-y: auto;
+    await set(newRef, {
+        name, days, note,
+        expiryTimestamp,
+        addedAt: Date.now()
+    });
+
+    msgEl.style.color = "#4caf50";
+    msgEl.textContent = "✅ เพิ่ม VIP สำเร็จ";
+    document.getElementById("vipName").value = "";
+    document.getElementById("vipDays").value = "";
+    document.getElementById("vipNote").value = "";
+});
+
+// ====== ลบ VIP ======
+async function deleteVip(key) {
+    const snap = await get(ref(db, `vips/${key}`));
+    if (!snap.exists()) return;
+    const vip = snap.val();
+
+    // ย้ายไปประวัติก่อน
+    await push(ref(db, "history"), {
+        ...vip,
+        removedAt: Date.now(),
+        reason: "ถูกลบโดยแอดมิน"
+    });
+
+    // แล้วลบออกจาก vips
+    await remove(ref(db, `vips/${key}`));
 }
 
-.modal-box h2 { color: #D4AF37; font-size: 1.1rem; }
-.modal-box h3 { font-size: 0.95rem; }
-
-.modal-box input {
-    background: #0f0f0f;
-    border: 1px solid #333;
-    border-radius: 6px;
-    color: #fff;
-    padding: 10px;
-    font-size: 0.9rem;
-    outline: none;
-    width: 100%;
-}
-.modal-box input:focus { border-color: #D4AF37; }
-
-.modal-box button {
-    padding: 10px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: opacity 0.2s;
-}
-#loginBtn { background: #D4AF37; color: #000; font-weight: bold; }
-#closeBtn { background: #2a2a2a; color: #fff; }
-#addVipBtn { background: #1f5c1f; color: #fff; }
-.modal-box button:hover { opacity: 0.85; }
-
-#msg {
-    font-size: 0.82rem;
-    text-align: center;
-    min-height: 16px;
-    color: #aaa;
+// ====== RENDER VIP CARDS ======
+function formatCountdown(ms) {
+    if (ms <= 0) return "หมดอายุแล้ว";
+    const totalSec = Math.floor(ms / 1000);
+    const d = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    return `${d} วัน ${h} ชั่วโมง ${m} นาที`;
 }
 
-/* ADD DAYS POPUP */
-.add-days-popup {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-}
-.add-days-popup.active { display: flex; }
-.popup-box {
-    background: #141414;
-    border: 1px solid #2d6a2d;
-    border-radius: 12px;
-    padding: 24px;
-    width: 280px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.popup-box h3 { color: #4caf50; font-size: 1rem; }
-.popup-box input {
-    background: #0f0f0f;
-    border: 1px solid #333;
-    border-radius: 6px;
-    color: #fff;
-    padding: 10px;
-    font-size: 0.9rem;
-    outline: none;
-    width: 100%;
-}
-.popup-box input:focus { border-color: #4caf50; }
-.popup-confirm {
-    background: #1f5c1f;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 10px;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-.popup-cancel {
-    background: #2a2a2a;
-    color: #aaa;
-    border: none;
-    border-radius: 6px;
-    padding: 10px;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
+function renderVips() {
+    if (countdownInterval) clearInterval(countdownInterval);
+    vipListEl.innerHTML = "";
+
+    const now = Date.now();
+    const keys =
