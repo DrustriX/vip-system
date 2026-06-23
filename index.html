@@ -10,22 +10,54 @@
 
 <!-- LOGIN MODAL -->
 <div id="loginModal" class="modal">
-    <div class="modal-box">
-        <h2>🔐 Admin Login</h2>
-        <input type="email" id="email" placeholder="อีเมล Admin">
-        <input type="password" id="adminPass" placeholder="รหัสผ่าน">
+    <div class="modal-box login-modal-box">
+        <div class="modal-header">
+            <h2>🔐 Admin Login</h2>
+            <button class="close-x" id="closeBtn">✕</button>
+        </div>
+        <div class="input-group">
+            <label>อีเมล Admin</label>
+            <input type="email" id="email" placeholder="admin@example.com">
+        </div>
+        <div class="input-group">
+            <label>รหัสผ่าน</label>
+            <input type="password" id="adminPass" placeholder="••••••••">
+        </div>
         <button id="loginBtn">เข้าสู่ระบบ</button>
-        <button id="closeBtn">ปิด</button>
         <p id="msg"></p>
+    </div>
+</div>
 
-        <div id="admin-panel" style="display:none;">
-            <hr style="margin:15px 0; opacity:0.2;">
-            <h3 style="color:#D4AF37;">➕ เพิ่ม VIP ใหม่</h3>
-            <input type="text" id="vipName" placeholder="ชื่อผู้เล่น">
-            <input type="number" id="vipDays" placeholder="จำนวนวัน">
-            <input type="text" id="vipNote" placeholder="หมายเหตุ">
-            <button id="addVipBtn">เพิ่ม VIP</button>
-            <button id="logoutBtn" style="margin-top:4px;">ออกจากระบบ</button>
+<!-- ADMIN PANEL MODAL -->
+<div id="adminModal" class="modal">
+    <div class="modal-box admin-modal-box">
+        <div class="modal-header">
+            <h2>⚙️ Admin Panel</h2>
+            <button class="close-x" id="closeAdminBtn">✕</button>
+        </div>
+        <p id="admin-msg"></p>
+
+        <div class="admin-section">
+            <h3>➕ เพิ่ม VIP ใหม่</h3>
+            <div class="input-group">
+                <label>ชื่อผู้เล่น</label>
+                <input type="text" id="vipName" placeholder="กรอกชื่อ">
+            </div>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>จำนวนวัน</label>
+                    <input type="number" id="vipDays" placeholder="0" min="1">
+                </div>
+                <div class="input-group">
+                    <label>หมายเหตุ</label>
+                    <input type="text" id="vipNote" placeholder="-">
+                </div>
+            </div>
+            <button id="addVipBtn" class="btn-green">➕ เพิ่ม VIP</button>
+        </div>
+
+        <div class="admin-footer">
+            <button id="logoutBtn" class="btn-logout">🚪 ออกจากระบบ</button>
         </div>
     </div>
 </div>
@@ -48,7 +80,10 @@
             <h1>CENTRAL CAFE</h1>
             <p class="subtitle">Premium Member System</p>
         </div>
-        <button class="admin-btn" id="openModalBtn">Admin Access</button>
+        <div class="header-actions">
+            <button class="admin-btn" id="openAdminBtn" style="display:none;">⚙️ Admin Panel</button>
+            <button class="admin-btn" id="openModalBtn">🔐 Admin Login</button>
+        </div>
     </header>
 
     <!-- TABS -->
