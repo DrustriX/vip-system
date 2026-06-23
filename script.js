@@ -1,210 +1,112 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-body {
-    background: #0a0a0a;
-    color: #fff;
-    font-family: 'Segoe UI', sans-serif;
-    min-height: 100vh;
-}
+const firebaseConfig = {
+    apiKey: "AIzaSyAg5S0_3O1EicYWqY8jVulF_bF_0kspmDg",
+    authDomain: "vip-system-d8317.firebaseapp.com",
+    databaseURL: "https://vip-system-d8317-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "vip-system-d8317",
+    storageBucket: "vip-system-d8317.firebasestorage.app",
+    messagingSenderId: "584414132253",
+    appId: "1:584414132253:web:5a4ca54246fb66d0ed6ef4"
+};
 
-.container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
-}
+const ADMIN_PASSWORD = "1234"; // ← เปลี่ยนรหัสตรงนี้
 
-/* HEADER */
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 0;
-    border-bottom: 1px solid #333;
-    margin-bottom: 30px;
-}
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-header h1 {
-    font-size: 2rem;
-    color: #D4AF37;
-    letter-spacing: 3px;
-}
+// Elements
+const modal       = document.getElementById("loginModal");
+const adminPassEl = document.getElementById("adminPass");
+const vipNameEl   = document.getElementById("vipName");
+const vipDaysEl   = document.getElementById("vipDays");
+const vipNoteEl   = document.getElementById("vipNote");
+const vipListEl   = document.getElementById("vip-list");
+const vipCountEl  = document.getElementById("vip-count");
 
-.subtitle {
-    color: #aaa;
-    font-size: 0.85rem;
-}
+// เพิ่ม div แสดง error/success ใน modal
+const msgEl = document.createElement("p");
+msgEl.id = "msg";
+document.querySelector(".modal-box").appendChild(msgEl);
 
-.admin-btn {
-    background: transparent;
-    border: 1px solid #D4AF37;
-    color: #D4AF37;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
+// เปิด Modal
+document.querySelector(".admin-btn").addEventListener("click", () => {
+    modal.classList.add("active");
+});
 
-.admin-btn:hover {
-    background: #D4AF37;
-    color: #000;
-}
+// ปิด Modal
+document.getElementById("closeBtn").addEventListener("click", () => {
+    modal.classList.remove("active");
+    msgEl.textContent = "";
+});
 
-/* HERO */
-.hero {
-    text-align: center;
-    padding: 20px 0;
-}
+// Login
+document.getElementById("loginBtn").addEventListener("click", () => {
+    if (adminPassEl.value === ADMIN_PASSWORD) {
+        msgEl.style.color = "#4caf50";
+        msgEl.textContent = "✅ เข้าสู่ระบบสำเร็จ";
+    } else {
+        msgEl.style.color = "#f44336";
+        msgEl.textContent = "❌ รหัสผิด";
+    }
+});
 
-.hero h2 {
-    font-size: 1.6rem;
-    color: #D4AF37;
-    margin-bottom: 10px;
-}
+// เพิ่ม VIP
+document.getElementById("addVipBtn").addEventListener("click", () => {
+    if (adminPassEl.value !== ADMIN_PASSWORD) {
+        msgEl.style.color = "#f44336";
+        msgEl.textContent = "❌ ต้องล็อกอินก่อน";
+        return;
+    }
 
-.hero p {
-    color: #aaa;
-}
+    const name = vipNameEl.value.trim();
+    const days = parseInt(vipDaysEl.value) || 0;
+    const note = vipNoteEl.value.trim();
 
-/* STATS */
-.stats {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
+    if (!name) {
+        msgEl.style.color = "#f44336";
+        msgEl.textContent = "❌ ใส่ชื่อก่อน";
+        return;
+    }
 
-.card {
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 12px;
-    padding: 20px 40px;
-    min-width: 150px;
-}
+    const newRef = push(ref(db, "vips"));
+    set(newRef, { name, days, note }).then(() => {
+        msgEl.style.color = "#4caf50";
+        msgEl.textContent = "✅ เพิ่ม VIP สำเร็จ";
+        vipNameEl.value = "";
+        vipDaysEl.value = "";
+        vipNoteEl.value = "";
+    }).catch((err) => {
+        msgEl.style.color = "#f44336";
+        msgEl.textContent = "❌ Error: " + err.message;
+    });
+});
 
-.card h3 {
-    font-size: 2rem;
-    color: #D4AF37;
-}
+// อ่านรายชื่อ VIP จาก Firebase
+onValue(ref(db, "vips"), (snapshot) => {
+    const data = snapshot.val();
+    vipListEl.innerHTML = "";
 
-.card p {
-    color: #aaa;
-    margin-top: 5px;
-}
+    if (!data) {
+        vipListEl.innerHTML = "<p style='color:#aaa;'>ยังไม่มีสมาชิก VIP</p>";
+        vipCountEl.textContent = "0";
+        return;
+    }
 
-/* VIP LIST */
-#vip-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    justify-content: center;
-    margin-top: 20px;
-}
+    const keys = Object.keys(data);
+    vipCountEl.textContent = keys.length;
 
-.vip-card {
-    background: #1a1a1a;
-    border: 1px solid #D4AF37;
-    border-radius: 12px;
-    padding: 20px;
-    min-width: 200px;
-    text-align: left;
-}
-
-.vip-card h3 {
-    color: #D4AF37;
-    margin-bottom: 8px;
-    font-size: 1.1rem;
-}
-
-.vip-card p {
-    color: #ccc;
-    font-size: 0.9rem;
-    margin: 4px 0;
-}
-
-/* MODAL */
-.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    z-index: 999;
-    justify-content: center;
-    align-items: center;
-}
-
-.modal.active {
-    display: flex;
-}
-
-.modal-box {
-    background: #1a1a1a;
-    border: 1px solid #D4AF37;
-    border-radius: 12px;
-    padding: 30px;
-    width: 340px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.modal-box h2 {
-    color: #D4AF37;
-}
-
-.modal-box h3 {
-    margin-top: 5px;
-}
-
-.modal-box input {
-    background: #111;
-    border: 1px solid #444;
-    border-radius: 6px;
-    color: #fff;
-    padding: 10px;
-    font-size: 0.95rem;
-    outline: none;
-}
-
-.modal-box input:focus {
-    border-color: #D4AF37;
-}
-
-.modal-box button {
-    padding: 10px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-size: 0.95rem;
-    transition: opacity 0.2s;
-}
-
-#loginBtn {
-    background: #D4AF37;
-    color: #000;
-    font-weight: bold;
-}
-
-#closeBtn {
-    background: #333;
-    color: #fff;
-}
-
-#addVipBtn {
-    background: #2a6a2a;
-    color: #fff;
-}
-
-.modal-box button:hover {
-    opacity: 0.85;
-}
-
-#msg {
-    font-size: 0.85rem;
-    text-align: center;
-    min-height: 18px;
-}
+    keys.forEach((key) => {
+        const vip = data[key];
+        const div = document.createElement("div");
+        div.className = "vip-card";
+        div.innerHTML = `
+            <h3>${vip.name || key}</h3>
+            <p>👑 สถานะ: VIP</p>
+            <p>📅 วัน VIP: ${vip.days || 0} วัน</p>
+            <p>📝 หมายเหตุ: ${vip.note || "-"}</p>
+        `;
+        vipListEl.appendChild(div);
+    });
+});
