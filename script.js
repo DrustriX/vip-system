@@ -2,13 +2,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebas
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
 const firebaseConfig = {
-apiKey: "AIzaSyAg5S0_3O1EicYWqY8jVulF_bF_0kspmDg",
-authDomain: "vip-system-d8317.firebaseapp.com",
-databaseURL: "https://vip-system-d8317-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId: "vip-system-d8317",
-storageBucket: "vip-system-d8317.firebasestorage.app",
-messagingSenderId: "584414132253",
-appId: "1:584414132253:web:5a4ca54246fb66d0ed6ef4"
+    apiKey: "AIzaSyAg5S0_3O1EicYWqY8jVulF_bF_0kspmDg",
+    authDomain: "vip-system-d8317.firebaseapp.com",
+    databaseURL: "https://vip-system-d8317-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "vip-system-d8317",
+    storageBucket: "vip-system-d8317.firebasestorage.app",
+    messagingSenderId: "584414132253",
+    appId: "1:584414132253:web:5a4ca54246fb66d0ed6ef4"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -18,33 +18,26 @@ const vipList = document.getElementById("vip-list");
 const vipCount = document.getElementById("vip-count");
 
 onValue(ref(db, "vips"), (snapshot) => {
+    const data = snapshot.val() || {};
 
-```
-const data = snapshot.val() || {};
+    vipList.innerHTML = "";
 
-vipList.innerHTML = "";
+    const count = Object.keys(data).length;
+    vipCount.textContent = count;
 
-const count = Object.keys(data).length;
-vipCount.textContent = count;
+    Object.keys(data).forEach((key) => {
+        const vip = data[key];
 
-Object.keys(data).forEach((key) => {
+        const div = document.createElement("div");
+        div.className = "vip-card";
 
-    const vip = data[key];
+        div.innerHTML = `
+            <h3>${vip.name || key}</h3>
+            <p>👑 สถานะ : VIP</p>
+            <p>📅 วัน VIP : ${vip.days || 0}</p>
+            <p>📝 หมายเหตุ : ${vip.note || "-"}</p>
+        `;
 
-    const div = document.createElement("div");
-
-    div.className = "vip-card";
-
-    div.innerHTML = `
-        <h3>${vip.name || key}</h3>
-        <p>👑 สถานะ : VIP</p>
-        <p>📅 วัน VIP : ${vip.days || 0}</p>
-        <p>📝 หมายเหตุ : ${vip.note || "-"}</p>
-    `;
-
-    vipList.appendChild(div);
-
-});
-```
-
+        vipList.appendChild(div);
+    });
 });
