@@ -29,25 +29,35 @@ let currentPopupKey = null;
 let countdownInterval = null;
 
 // ====== ELEMENTS ======
-const modal        = document.getElementById("loginModal");
+const loginModal   = document.getElementById("loginModal");
+const adminModal   = document.getElementById("adminModal");
 const adminPassEl  = document.getElementById("adminPass");
 const emailEl      = document.getElementById("email");
 const msgEl        = document.getElementById("msg");
-const adminPanel   = document.getElementById("admin-panel");
+const adminMsgEl   = document.getElementById("admin-msg");
 const vipListEl    = document.getElementById("vip-list");
 const histListEl   = document.getElementById("history-list");
 const vipCountEl   = document.getElementById("vip-count");
 const expCountEl   = document.getElementById("expired-count");
 const histCountEl  = document.getElementById("history-count");
 const addDaysPopup = document.getElementById("addDaysPopup");
+const openModalBtn = document.getElementById("openModalBtn");
+const openAdminBtn = document.getElementById("openAdminBtn");
 
 // ====== MODAL OPEN/CLOSE ======
-document.getElementById("openModalBtn").addEventListener("click", () => {
-    modal.classList.add("active");
+openModalBtn.addEventListener("click", () => {
+    loginModal.classList.add("active");
 });
 document.getElementById("closeBtn").addEventListener("click", () => {
-    modal.classList.remove("active");
+    loginModal.classList.remove("active");
     msgEl.textContent = "";
+});
+
+openAdminBtn.addEventListener("click", () => {
+    adminModal.classList.add("active");
+});
+document.getElementById("closeAdminBtn").addEventListener("click", () => {
+    adminModal.classList.remove("active");
 });
 
 // ====== TABS ======
@@ -69,6 +79,8 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
         msgEl.textContent = "❌ ใส่อีเมลและรหัสผ่าน";
         return;
     }
+    msgEl.style.color = "#aaa";
+    msgEl.textContent = "⏳ กำลังเข้าสู่ระบบ...";
     try {
         await signInWithEmailAndPassword(auth, email, password);
     } catch (e) {
@@ -82,9 +94,9 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
     await signOut(auth);
     isAdmin = false;
     currentUser = null;
-    adminPanel.style.display = "none";
-    msgEl.style.color = "#aaa";
-    msgEl.textContent = "";
+    adminModal.classList.remove("active");
+    openAdminBtn.style.display = "none";
+    openModalBtn.style.display = "";
     emailEl.value = "";
     adminPassEl.value = "";
     renderVips();
@@ -101,7 +113,8 @@ onAuthStateChanged(auth, async (user) => {
     if (!user) {
         isAdmin = false;
         currentUser = null;
-        adminPanel.style.display = "none";
+        openAdminBtn.style.display = "none";
+        openModalBtn.style.display = "";
         renderVips();
         return;
     }
@@ -109,9 +122,13 @@ onAuthStateChanged(auth, async (user) => {
     isAdmin = await checkAdmin(user.uid);
 
     if (isAdmin) {
-        adminPanel.style.display = "flex";
-        msgEl.style.color = "#4caf50";
-        msgEl.textContent = `✅ ล็อกอินแล้ว (${user.email})`;
+        // ปิด login modal, เปิดปุ่ม Admin Panel
+        loginModal.classList.remove("active");
+        openModalBtn.style.display = "none";
+        openAdminBtn.style.display = "";
+        adminMsgEl.style.color = "#4caf50";
+        adminMsgEl.textContent = `✅ ล็อกอินแล้ว: ${user.email}`;
+        msgEl.textContent = "";
     } else {
         msgEl.style.color = "#f44336";
         msgEl.textContent = "❌ บัญชีนี้ไม่ใช่แอดมิน";
@@ -128,8 +145,8 @@ document.getElementById("addVipBtn").addEventListener("click", async () => {
     const days = parseInt(document.getElementById("vipDays").value) || 0;
     const note = document.getElementById("vipNote").value.trim();
 
-    if (!name) { msgEl.style.color = "#f44336"; msgEl.textContent = "❌ ใส่ชื่อก่อน"; return; }
-    if (days < 1) { msgEl.style.color = "#f44336"; msgEl.textContent = "❌ จำนวนวันต้องมากกว่า 0"; return; }
+    if (!name) { adminMsgEl.style.color = "#f44336"; adminMsgEl.textContent = "❌ ใส่ชื่อก่อน"; return; }
+    if (days < 1) { adminMsgEl.style.color = "#f44336"; adminMsgEl.textContent = "❌ จำนวนวันต้องมากกว่า 0"; return; }
 
     const expiryTimestamp = Date.now() + days * 86400000;
     await set(push(ref(db, "vips")), {
@@ -139,8 +156,8 @@ document.getElementById("addVipBtn").addEventListener("click", async () => {
         createdBy: currentUser.uid
     });
 
-    msgEl.style.color = "#4caf50";
-    msgEl.textContent = "✅ เพิ่ม VIP สำเร็จ";
+    adminMsgEl.style.color = "#4caf50";
+    adminMsgEl.textContent = `✅ เพิ่ม "${name}" สำเร็จ`;
     document.getElementById("vipName").value = "";
     document.getElementById("vipDays").value = "";
     document.getElementById("vipNote").value = "";
@@ -236,7 +253,6 @@ function renderVips() {
 
     expCountEl.textContent = expiredCount;
 
-    // ผูก event ปุ่ม (ทำหลัง render เสร็จ)
     if (isAdmin) {
         document.querySelectorAll(".btn-add-days").forEach(btn => {
             btn.addEventListener("click", () => {
@@ -255,7 +271,6 @@ function renderVips() {
         });
     }
 
-    // countdown อัพเดตทุก 30 วิ
     countdownInterval = setInterval(() => {
         document.querySelectorAll(".countdown[data-key]").forEach(el => {
             const vip = vipsData[el.dataset.key];
@@ -279,15 +294,19 @@ function renderHistory(data) {
     histCountEl.textContent = keys.length;
     keys.slice().reverse().forEach(key => {
         const h = data[key];
+        const isDeleted = h.reason === "ถูกลบโดยแอดมิน";
         const div = document.createElement("div");
-        div.className = "vip-card expired-vip";
+        div.className = `vip-card ${isDeleted ? "deleted-vip" : "expired-vip"}`;
         div.innerHTML = `
             <h3>${h.name || key}</h3>
-            <span class="status-badge badge-expired">● ${h.reason || "หมดอายุ"}</span>
+            <span class="status-badge ${isDeleted ? "badge-deleted" : "badge-expired"}">
+                ${isDeleted ? "🗑 ถูกลบโดยแอดมิน" : "⏰ หมดอายุ"}
+            </span>
             <p>📝 ${h.note || "-"}</p>
-            <p style="color:#555;font-size:0.75rem;margin-top:8px;">
-                🗓 ${h.removedAt ? new Date(h.removedAt).toLocaleString("th-TH") : "-"}
-            </p>
+            <div class="history-meta">
+                <span>🗓 ${h.removedAt ? new Date(h.removedAt).toLocaleString("th-TH") : "-"}</span>
+                ${h.addedAt ? `<span>➕ เพิ่มเมื่อ ${new Date(h.addedAt).toLocaleDateString("th-TH")}</span>` : ""}
+            </div>
         `;
         histListEl.appendChild(div);
     });
@@ -298,7 +317,6 @@ onValue(ref(db, "vips"), async (snap) => {
     const raw = snap.val() || {};
     const now = Date.now();
 
-    // ย้ายคนหมดอายุลงประวัติอัตโนมัติ
     for (const [key, vip] of Object.entries(raw)) {
         if (vip.expiryTimestamp && vip.expiryTimestamp < now) {
             await push(ref(db, "history"), { ...vip, removedAt: now, reason: "หมดอายุ" });
