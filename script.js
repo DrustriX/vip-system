@@ -1,3 +1,4 @@
+document.body.innerHTML = "<h1 style='color:red'>JS IS WORKING</h1>";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
