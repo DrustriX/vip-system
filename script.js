@@ -174,4 +174,125 @@ function renderVips() {
     vipListEl.innerHTML = "";
 
     const now = Date.now();
-    const keys =
+    const keys = Object.keys(vipsData);
+    let expiredCount = 0;
+
+    vipCountEl.textContent = keys.length;
+
+    keys.forEach((key) => {
+        const vip = vipsData[key];
+        const expiry = vip.expiryTimestamp || (vip.addedAt + (vip.days || 0) * 86400000);
+        const remaining = expiry - now;
+        const isExpired = remaining <= 0;
+        if (isExpired) expiredCount++;
+
+        const div = document.createElement("div");
+        div.className = `vip-card ${isExpired ? "expired-vip" : "active-vip"}`;
+        div.dataset.expiry = expiry;
+
+        div.innerHTML = `
+            <h3>${vip.name || key}</h3>
+            <span class="status-badge ${isExpired ? "badge-expired" : "badge-active"}">
+                ${isExpired ? "● หมดอายุ" : "● VIP"}
+            </span>
+            <p>📝 ${vip.note || "-"}</p>
+            <div class="countdown ${isExpired ? "red" : "green"}" data-key="${key}">
+                ${formatCountdown(remaining)}
+            </div>
+            ${isAdmin ? `
+            <div class="card-actions">
+                <button class="btn-add-days" data-key="${key}" data-name="${vip.name}">➕ เพิ่มวัน</button>
+                <button class="btn-delete" data-key="${key}">🗑</button>
+            </div>` : ""}
+        `;
+
+        vipListEl.appendChild(div);
+    });
+
+    expCountEl.textContent = expiredCount;
+
+    // ผูก event ปุ่ม
+    if (isAdmin) {
+        document.querySelectorAll(".btn-add-days").forEach(btn => {
+            btn.addEventListener("click", () => {
+                currentPopupKey = btn.dataset.key;
+                document.getElementById("popup-name").textContent = `สมาชิก: ${btn.dataset.name}`;
+                addDaysPopup.classList.add("active");
+            });
+        });
+
+        document.querySelectorAll(".btn-delete").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const name = vipsData[btn.dataset.key]?.name || btn.dataset.key;
+                if (confirm(`ลบ "${name}" ออกจากรายชื่อ VIP?`)) {
+                    await deleteVip(btn.dataset.key);
+                }
+            });
+        });
+    }
+
+    // Countdown ทุก 30 วินาที
+    countdownInterval = setInterval(() => {
+        document.querySelectorAll(".countdown[data-key]").forEach(el => {
+            const vip = vipsData[el.dataset.key];
+            if (!vip) return;
+            const expiry = vip.expiryTimestamp || (vip.addedAt + (vip.days || 0) * 86400000);
+            const rem = expiry - Date.now();
+            el.textContent = formatCountdown(rem);
+            el.className = `countdown ${rem <= 0 ? "red" : "green"}`;
+        });
+    }, 30000);
+}
+
+// ====== RENDER HISTORY ======
+function renderHistory(data) {
+    histListEl.innerHTML = "";
+    if (!data) {
+        histListEl.innerHTML = "<p style='color:#555;padding:20px;'>ยังไม่มีประวัติ</p>";
+        histCountEl.textContent = "0";
+        return;
+    }
+
+    const keys = Object.keys(data);
+    histCountEl.textContent = keys.length;
+
+    keys.slice().reverse().forEach((key) => {
+        const h = data[key];
+        const removedDate = h.removedAt ? new Date(h.removedAt).toLocaleString("th-TH") : "-";
+
+        const div = document.createElement("div");
+        div.className = "vip-card expired-vip";
+        div.innerHTML = `
+            <h3>${h.name || key}</h3>
+            <span class="status-badge badge-expired">● ${h.reason || "หมดอายุ"}</span>
+            <p>📝 ${h.note || "-"}</p>
+            <p style="color:#555;font-size:0.75rem;margin-top:8px;">🗓 ออกจากระบบ: ${removedDate}</p>
+        `;
+        histListEl.appendChild(div);
+    });
+}
+
+// ====== FIREBASE LISTENERS ======
+onValue(ref(db, "vips"), (snapshot) => {
+    vipsData = snapshot.val() || {};
+
+    // ตรวจหมดอายุอัตโนมัติ แล้วย้ายไปประวัติ
+    const now = Date.now();
+    Object.entries(vipsData).forEach(async ([key, vip]) => {
+        const expiry = vip.expiryTimestamp || (vip.addedAt + (vip.days || 0) * 86400000);
+        if (expiry && expiry < now) {
+            await push(ref(db, "history"), {
+                ...vip,
+                removedAt: now,
+                reason: "หมดอายุ"
+            });
+            await remove(ref(db, `vips/${key}`));
+        }
+    });
+
+    renderVips();
+});
+
+onValue(ref(db, "history"), (snapshot) => {
+    renderHistory(snapshot.val());
+});
