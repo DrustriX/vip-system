@@ -8,15 +8,18 @@
 </head>
 <body>
 
-<!-- 🔐 LOGIN MODAL -->
+<!-- LOGIN MODAL -->
 <div id="loginModal" class="modal">
     <div class="modal-box">
-        <h2>Admin Login</h2>
-        <input type="password" id="adminPass" placeholder="ใส่รหัส">
+        <h2>🔐 Admin Login</h2>
+        <input type="password" id="adminPass" placeholder="ใส่รหัส Admin">
         <button id="loginBtn">เข้าสู่ระบบ</button>
         <button id="closeBtn">ปิด</button>
+        <p id="msg"></p>
+
         <hr style="margin:15px 0; opacity:0.2;">
-        <h3 style="color:#D4AF37;">➕ เพิ่ม VIP</h3>
+
+        <h3 style="color:#D4AF37;">➕ เพิ่ม VIP ใหม่</h3>
         <input type="text" id="vipName" placeholder="ชื่อผู้เล่น">
         <input type="number" id="vipDays" placeholder="จำนวนวัน">
         <input type="text" id="vipNote" placeholder="หมายเหตุ">
@@ -34,12 +37,14 @@
         <button class="admin-btn">Admin Access</button>
     </header>
 
-    <div class="hero">
-        <h2>👑 ระบบจัดการสมาชิก VIP</h2>
-        <p>ระบบสำหรับจัดการสมาชิก VIP ของ Central Cafe</p>
-        <br><br>
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab active" data-tab="vip">👑 VIP</button>
+        <button class="tab" data-tab="history">📋 ประวัติ</button>
+    </div>
 
-        <!-- STATS -->
+    <!-- VIP TAB -->
+    <div id="tab-vip" class="tab-content">
         <div class="stats">
             <div class="card">
                 <h3 id="vip-count">0</h3>
@@ -54,11 +59,12 @@
                 <p>ประวัติ</p>
             </div>
         </div>
-        <br><br>
+        <div id="vip-list" class="vip-grid"></div>
+    </div>
 
-        <!-- VIP LIST -->
-        <h2>👑 รายชื่อสมาชิก VIP</h2>
-        <div id="vip-list"></div>
+    <!-- HISTORY TAB -->
+    <div id="tab-history" class="tab-content hidden">
+        <div id="history-list" class="vip-grid"></div>
     </div>
 </div>
 
