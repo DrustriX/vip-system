@@ -1,4 +1,3 @@
-document.body.innerHTML = "<h1 style='color:red'>JS IS WORKING</h1>";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
@@ -18,28 +17,18 @@ const db = getDatabase(app);
 const vipList = document.getElementById("vip-list");
 const vipCount = document.getElementById("vip-count");
 
-console.log("SCRIPT LOADED");
-
-// 🔥 กันหน้าขาว + loading state
-vipList.innerHTML = `
-    <div style="color:#D4AF37; text-align:center; padding:20px;">
-        ⏳ กำลังโหลด VIP...
-    </div>
-`;
+console.log("SCRIPT READY");
 
 onValue(ref(db, "vips"), (snapshot) => {
 
     const data = snapshot.val();
 
+    console.log("DATA:", data);
+
     vipList.innerHTML = "";
 
-    // ❌ ไม่มีข้อมูล
     if (!data) {
-        vipList.innerHTML = `
-            <div style="color:#999; text-align:center; padding:20px;">
-                ไม่มี VIP ตอนนี้
-            </div>
-        `;
+        vipList.innerHTML = "<p style='color:white'>ไม่มี VIP</p>";
         vipCount.textContent = "0";
         return;
     }
@@ -48,6 +37,7 @@ onValue(ref(db, "vips"), (snapshot) => {
     vipCount.textContent = keys.length;
 
     keys.forEach((key) => {
+
         const vip = data[key];
 
         const div = document.createElement("div");
@@ -55,9 +45,9 @@ onValue(ref(db, "vips"), (snapshot) => {
 
         div.innerHTML = `
             <h3>${vip.name || key}</h3>
-            <p>👑 สถานะ: VIP</p>
-            <p>📅 วัน VIP: ${vip.days || 0}</p>
-            <p>📝 หมายเหตุ: ${vip.note || "-"}</p>
+            <p>👑 VIP</p>
+            <p>📅 ${vip.days || 0} วัน</p>
+            <p>📝 ${vip.note || "-"}</p>
         `;
 
         vipList.appendChild(div);
