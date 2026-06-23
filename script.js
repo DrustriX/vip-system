@@ -26,6 +26,7 @@ let isAdmin = false;
 let currentUser = null;
 let vipsData = {};
 let currentPopupKey = null;
+let deletePopupKey = null;
 let countdownInterval = null;
 
 // ====== ELEMENTS ======
@@ -41,6 +42,7 @@ const vipCountEl   = document.getElementById("vip-count");
 const expCountEl   = document.getElementById("expired-count");
 const histCountEl  = document.getElementById("history-count");
 const addDaysPopup = document.getElementById("addDaysPopup");
+const deletePopup  = document.getElementById("deletePopup");
 const openModalBtn = document.getElementById("openModalBtn");
 const openAdminBtn = document.getElementById("openAdminBtn");
 
@@ -200,6 +202,20 @@ document.getElementById("popup-confirm").addEventListener("click", async () => {
     currentPopupKey = null;
 });
 
+
+// ====== DELETE CONFIRM POPUP ======
+document.getElementById("delete-cancel").addEventListener("click", () => {
+    deletePopup.classList.remove("active");
+    deletePopupKey = null;
+});
+
+document.getElementById("delete-confirm").addEventListener("click", async () => {
+    if (!deletePopupKey) return;
+    await deleteVip(deletePopupKey);
+    deletePopup.classList.remove("active");
+    deletePopupKey = null;
+});
+
 // ====== FORMAT COUNTDOWN ======
 function formatCountdown(ms) {
     if (ms <= 0) return "หมดอายุแล้ว";
@@ -262,11 +278,11 @@ function renderVips() {
             });
         });
         document.querySelectorAll(".btn-delete").forEach(btn => {
-            btn.addEventListener("click", async () => {
+            btn.addEventListener("click", () => {
                 const name = vipsData[btn.dataset.key]?.name || btn.dataset.key;
-                if (confirm(`ลบ "${name}" ออกจากรายชื่อ VIP?`)) {
-                    await deleteVip(btn.dataset.key);
-                }
+                deletePopupKey = btn.dataset.key;
+                document.getElementById("delete-name-text").textContent = name;
+                deletePopup.classList.add("active");
             });
         });
     }
